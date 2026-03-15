@@ -45,3 +45,7 @@ pipeline_logs/
 
 # Misc
 generate-git-repo-files.sh
+results_multisample/bam/
+results_multisample/vcf/
+results_multisample/pipeline_info/
+results_multisample/reference/
