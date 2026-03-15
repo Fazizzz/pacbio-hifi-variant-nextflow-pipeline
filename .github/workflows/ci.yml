@@ -1,125 +1,29 @@
 # =============================================================================
-# PacBio HiFi Variant Pipeline — CI
+# PacBio HiFi Variant Pipeline — CI (dev/benchmarking)
 # =============================================================================
-# Runs the pipeline using -profile test on every push and pull request.
+# Manual trigger only — this branch is a benchmarking and validation
+# framework intended to be run locally against synthetic test data.
 #
-# What this tests:
-#   - Conda environment solves correctly
-#   - Nextflow installs and runs correctly
-#   - All module definitions are syntactically correct
-#   - Single-sample pipeline runs end-to-end (minimap2 + bcftools)
-#   - Multi-sample samplesheet mode runs end-to-end
-#   - BAM, VCF, and QC reports are produced
+# Automated CI is not enabled on this branch because it requires a
+# full reference genome that is not committed to the repository.
+# Full pipeline validation is performed locally using the provided
+# synthetic test data and scripts. See README for instructions.
 #
-# Test dataset:
-#   test_data/sample1/synthetic_reads.fastq  — 25 synthetic HiFi reads
-#   test_data/sample1/reference_region.fa    — chr20:100000-118000 region
-#   test_data/samplesheet.csv                — four synthetic samples
+# To run this workflow manually:
+#   GitHub → Actions → CI → Run workflow
 # =============================================================================
 
 name: CI
 
 on:
-  push:
-    branches:
-      - main
-      - dev
-      - dev/*
-  pull_request:
-    branches:
-      - main
-      - dev
-      - dev/*
+  workflow_dispatch:  # manual trigger only
 
 jobs:
-
-  nextflow_test:
-    name: Nextflow Pipeline Test
+  placeholder:
+    name: Manual trigger only
     runs-on: ubuntu-latest
-
     steps:
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up conda
-        uses: conda-incubator/setup-miniconda@v3
-        with:
-          environment-file: environment.yml
-          activate-environment: pacbio_nf
-          auto-activate-base: false
-          miniforge-version: latest
-
-      - name: Install Nextflow
-        shell: bash -el {0}
+      - name: Info
         run: |
-          curl -s https://get.nextflow.io | bash
-          sudo mv nextflow /usr/local/bin/
-          nextflow -version
-
-      - name: Make scripts executable
-        run: |
-          chmod +x scripts/pipeline/*.sh
-          chmod +x scripts/run_pipeline.sh
-          chmod +x scripts/report/generate_html_report.py
-          chmod +x scripts/report/generate_multisample_report.py
-
-      # Single-sample test
-      - name: Run single-sample pipeline
-        shell: bash -el {0}
-        run: |
-          nextflow run main.nf \
-            --reads     test_data/sample1/synthetic_reads.fastq \
-            --reference test_data/sample1/reference_region.fa \
-            --sample    sample_10snv \
-            --outdir    ci_results_single
-
-      - name: Validate single-sample outputs
-        shell: bash -el {0}
-        run: |
-          [ -f ci_results_single/bam/sample_10snv.bam ] || \
-            (echo "ERROR: BAM not found" && exit 1)
-          [ -f ci_results_single/vcf/sample_10snv_norm.vcf.gz ] || \
-            (echo "ERROR: VCF not found" && exit 1)
-          [ -f ci_results_single/reports/sample_10snv_qc_report.html ] || \
-            (echo "ERROR: QC HTML report not found" && exit 1)
-          echo "Single-sample outputs validated."
-
-      # Multi-sample test
-      - name: Run multi-sample pipeline
-        shell: bash -el {0}
-        run: |
-          nextflow run main.nf \
-            --samplesheet test_data/samplesheet.csv \
-            --reference   test_data/sample1/reference_region.fa \
-            --outdir      ci_results_multi
-
-      - name: Validate multi-sample outputs
-        shell: bash -el {0}
-        run: |
-          [ -f ci_results_multi/reports/sample_10snv_qc_report.html ] || \
-            (echo "ERROR: Multi-sample QC report not found" && exit 1)
-          [ -f ci_results_multi/reports/sample_1snv_qc_report.html ] || \
-            (echo "ERROR: sample_1snv QC report not found" && exit 1)
-          echo "Multi-sample outputs validated."
-
-      # Generate multi-sample summary report
-      - name: Generate multi-sample summary report
-        shell: bash -el {0}
-        run: |
-          python scripts/report/generate_multisample_report.py \
-            --reports "ci_results_multi/reports/*_qc_report.txt" \
-            --output  ci_results_multi/reports/multisample_summary.html
-          [ -f ci_results_multi/reports/multisample_summary.html ] || \
-            (echo "ERROR: Multi-sample summary report not found" && exit 1)
-          echo "Multi-sample summary report generated."
-
-      - name: Upload CI reports
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: ci-reports
-          path: |
-            ci_results_single/reports/
-            ci_results_multi/reports/
-          retention-days: 7
+          echo "This branch is validated locally."
+          echo "See README for benchmarking instructions."
