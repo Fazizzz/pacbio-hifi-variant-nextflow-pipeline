@@ -1,0 +1,47 @@
+# Nextflow
+work/
+.nextflow/
+.nextflow.log*
+.nextflow.cache/
+
+# Large reference files
+reference/
+test_data/chr20_mutated.fa
+test_data/chr20_mutated.fa.seqkit.fai
+
+# Result files — keep reports, exclude binary outputs
+test_results*/*.bam
+test_results*/*.bai
+test_results*/*.vcf.gz
+test_results*/*.vcf.gz.csi
+test_results*/*.vcf.gz.tbi
+test_results*/bam/
+test_results*/vcf/
+test_results*/reference/
+test_results*/pipeline_info/
+test_results*/*_coverage.tsv
+test_results*/*_metrics.json
+
+# General output files
+results/
+*.fai
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Mac
+.DS_Store
+.tmux.conf
+
+# Conda
+.conda_cache/
+environment.lock.yml
+
+# Logs
+pipeline_logs/
+*.log
+
+# Misc
+generate-git-repo-files.sh

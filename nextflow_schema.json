@@ -1,0 +1,140 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "$id": "https://raw.githubusercontent.com/pacbio-hifi-variant-nextflow-pipeline/main/nextflow_schema.json",
+    "title": "PacBio HiFi Variant Pipeline — Parameter Schema",
+    "description": "Nextflow parameter schema for the PacBio HiFi variant calling pipeline.",
+    "type": "object",
+    "definitions": {
+
+        "input_output_options": {
+            "title": "Input / Output",
+            "type": "object",
+            "description": "Required input files and output directory.",
+            "required": ["reads", "reference", "sample"],
+            "properties": {
+
+                "reads": {
+                    "type": "string",
+                    "description": "Path to input HiFi FASTQ file.",
+                    "help_text": "PacBio HiFi (CCS) reads in FASTQ or FASTQ.GZ format. Example: test_data/synthetic_reads.fastq",
+                    "fa_icon": "fas fa-file"
+                },
+
+                "reference": {
+                    "type": "string",
+                    "description": "Path to reference FASTA file.",
+                    "help_text": "Reference genome FASTA. A .fai index will be created automatically if not present. Example: reference/chr20.fa",
+                    "fa_icon": "fas fa-file"
+                },
+
+                "sample": {
+                    "type": "string",
+                    "description": "Sample name used for output file naming.",
+                    "help_text": "Used as the prefix for all output files. Avoid spaces and slashes. Example: sample_001",
+                    "fa_icon": "fas fa-tag"
+                },
+
+                "outdir": {
+                    "type": "string",
+                    "description": "Output directory for pipeline results.",
+                    "help_text": "All pipeline outputs are written here. Created automatically if it does not exist.",
+                    "default": "results",
+                    "fa_icon": "fas fa-folder"
+                }
+            }
+        },
+
+        "pipeline_options": {
+            "title": "Pipeline Options",
+            "type": "object",
+            "description": "Aligner and variant caller selection.",
+            "properties": {
+
+                "aligner": {
+                    "type": "string",
+                    "description": "Aligner to use for read mapping.",
+                    "help_text": "minimap2 runs locally via conda or Docker. pbmm2 requires -profile docker and is not installable on Intel Mac via conda above v1.7.0.",
+                    "default": "minimap2",
+                    "enum": ["minimap2", "pbmm2"],
+                    "fa_icon": "fas fa-align-left"
+                },
+
+                "snv_caller": {
+                    "type": "string",
+                    "description": "SNV variant caller to use.",
+                    "help_text": "bcftools runs locally via conda or Docker. clair3 and deepvariant require -profile docker. clair3 also requires --clair3_model.",
+                    "default": "bcftools",
+                    "enum": ["bcftools", "clair3", "deepvariant"],
+                    "fa_icon": "fas fa-dna"
+                },
+
+                "threads": {
+                    "type": "integer",
+                    "description": "Number of threads for alignment and variant calling.",
+                    "help_text": "Used as a fallback. Process-level threading is controlled by the resource label in nextflow.config via task.cpus.",
+                    "default": 4,
+                    "minimum": 1,
+                    "fa_icon": "fas fa-microchip"
+                }
+            }
+        },
+
+        "clair3_options": {
+            "title": "Clair3 Options",
+            "type": "object",
+            "description": "Options specific to the Clair3 variant caller.",
+            "properties": {
+
+                "clair3_model": {
+                    "type": "string",
+                    "description": "Path to Clair3 pre-trained model directory.",
+                    "help_text": "Required when --snv_caller clair3. Model files are not included in the container. Download from: https://github.com/HKU-BAL/Clair3#pre-trained-models",
+                    "fa_icon": "fas fa-brain"
+                }
+            }
+        },
+
+        "container_options": {
+            "title": "Container Options",
+            "type": "object",
+            "description": "Docker container image versions. Update here to change across all modules.",
+            "properties": {
+
+                "pipeline_container": {
+                    "type": "string",
+                    "description": "Main pipeline Docker image (minimap2 + samtools + bcftools + seqkit).",
+                    "default": "pacbio-hifi-pipeline:1.0",
+                    "fa_icon": "fab fa-docker"
+                },
+
+                "pbmm2_container": {
+                    "type": "string",
+                    "description": "pbmm2 pipeline Docker image.",
+                    "default": "pacbio-hifi-pipeline:pbmm2",
+                    "fa_icon": "fab fa-docker"
+                },
+
+                "clair3_container": {
+                    "type": "string",
+                    "description": "Clair3 Docker image.",
+                    "default": "pacbio-hifi-clair3:1.0",
+                    "fa_icon": "fab fa-docker"
+                },
+
+                "deepvariant_container": {
+                    "type": "string",
+                    "description": "DeepVariant Docker image (official Google image).",
+                    "default": "google/deepvariant:1.6.1",
+                    "fa_icon": "fab fa-docker"
+                }
+            }
+        }
+    },
+
+    "allOf": [
+        { "$ref": "#/definitions/input_output_options"  },
+        { "$ref": "#/definitions/pipeline_options"      },
+        { "$ref": "#/definitions/clair3_options"        },
+        { "$ref": "#/definitions/container_options"     }
+    ]
+}

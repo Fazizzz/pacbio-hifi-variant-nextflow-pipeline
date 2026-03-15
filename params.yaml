@@ -1,0 +1,79 @@
+# =============================================================================
+# PacBio HiFi Variant Pipeline — Parameters
+# =============================================================================
+# Usage:
+#   nextflow run main.nf -params-file params.yaml
+#
+# Override any parameter on the command line:
+#   nextflow run main.nf -params-file params.yaml --outdir my_results
+#
+# Command line values always take precedence over values in this file.
+# =============================================================================
+
+
+# -----------------------------------------------------------------------------
+# Input / Output
+# -----------------------------------------------------------------------------
+
+# Path to HiFi reads (FASTQ or FASTQ.GZ)
+reads: "test_data/synthetic_reads.fastq"
+
+# Path to reference FASTA
+# A .fai index will be created automatically if not present
+reference: "reference/chr20.fa"
+
+# Sample name — used as prefix for all output files
+# Avoid spaces and slashes
+sample: "synthetic_reads"
+
+# Output directory
+outdir: "results"
+
+
+# -----------------------------------------------------------------------------
+# Pipeline Options
+# -----------------------------------------------------------------------------
+
+# Aligner selection
+#   minimap2  — default, runs locally via conda or Docker
+#   pbmm2     — Docker only, PacBio-native aligner
+aligner: "minimap2"
+
+# SNV variant caller selection
+#   bcftools    — default, lightweight, runs locally via conda or Docker
+#   clair3      — Docker only, HiFi-optimized deep learning caller
+#   deepvariant — Docker only, highest accuracy, GPU recommended
+snv_caller: "bcftools"
+
+# Threads for alignment and variant calling
+# Process-level threading is controlled by resource labels in nextflow.config
+threads: 4
+
+
+# -----------------------------------------------------------------------------
+# Clair3 Options
+# Only required when snv_caller: "clair3"
+# -----------------------------------------------------------------------------
+
+# Path to Clair3 pre-trained model directory
+# Download from: https://github.com/HKU-BAL/Clair3#pre-trained-models
+# clair3_model: "/path/to/clair3/model"
+
+
+# -----------------------------------------------------------------------------
+# Container Images
+# Update here to change image versions across all modules
+# Only used with -profile docker
+# -----------------------------------------------------------------------------
+
+# Main pipeline image (minimap2 + samtools + bcftools + seqkit)
+pipeline_container: "pacbio-hifi-pipeline:1.0"
+
+# pbmm2 pipeline image
+pbmm2_container: "pacbio-hifi-pipeline:pbmm2"
+
+# Clair3 image
+clair3_container: "pacbio-hifi-clair3:1.0"
+
+# DeepVariant image (official Google image)
+deepvariant_container: "google/deepvariant:1.6.1"
