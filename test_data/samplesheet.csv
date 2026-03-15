@@ -1,0 +1,4 @@
+sample_10snv,test_data/sample1/synthetic_reads.fastq
+sample_5snv,test_data/sample2/synthetic_reads.fastq
+sample_1snv,test_data/sample3/synthetic_reads.fastq
+sample_20snv,test_data/sample4/synthetic_reads.fastq

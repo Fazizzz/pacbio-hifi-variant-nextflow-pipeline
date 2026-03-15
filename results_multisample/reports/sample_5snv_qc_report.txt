@@ -1,7 +1,7 @@
 ============================================
 PacBio HiFi Pipeline QC Report
-Sample    : synthetic_reads_dv
-Generated : 2026-03-15 09:17:40
+Sample    : sample_5snv
+Generated : 2026-03-15 21:20:35
 ============================================
 
 ---- ALIGNMENT METRICS ----
@@ -11,8 +11,8 @@ Generated : 2026-03-15 09:17:40
 0 + 0 supplementary
 0 + 0 duplicates
 0 + 0 primary duplicates
-22 + 0 mapped (88.00% : N/A)
-22 + 0 primary mapped (88.00% : N/A)
+25 + 0 mapped (100.00% : N/A)
+25 + 0 primary mapped (100.00% : N/A)
 0 + 0 paired in sequencing
 0 + 0 read1
 0 + 0 read2
@@ -24,7 +24,7 @@ Generated : 2026-03-15 09:17:40
 
 ---- COVERAGE METRICS ----
 #rname	startpos	endpos	numreads	covbases	coverage	meandepth	meanbaseq	meanmapq
-chr20	1	64444167	22	18000	0.0279312	0.00476903	26.2	60
+chr20	1	64444167	25	17996	0.0279249	0.00550754	29.5	60
 
 ---- READ METRICS ----
 SN	raw total sequences:	25	# excluding supplementary and secondary reads
@@ -33,9 +33,9 @@ SN	sequences:	25
 SN	is sorted:	1	# sorted by coordinate
 SN	1st fragments:	25
 SN	last fragments:	0
-SN	reads mapped:	22
+SN	reads mapped:	25
 SN	reads mapped and paired:	0	# paired-end technology bit set + both mates mapped
-SN	reads unmapped:	3
+SN	reads unmapped:	0
 SN	reads properly paired:	0	# proper-pair bit set
 SN	reads paired:	0	# paired-end technology bit set
 SN	reads duplicated:	0	# PCR or optical duplicate bit set
@@ -43,22 +43,22 @@ SN	reads MQ0:	0	# mapped and MQ=0
 SN	reads QC failed:	0
 SN	non-primary alignments:	0
 SN	supplementary alignments:	0
-SN	total length:	360124	# ignores clipping
-SN	total first fragment length:	360124	# ignores clipping
+SN	total length:	360036	# ignores clipping
+SN	total first fragment length:	360036	# ignores clipping
 SN	total last fragment length:	0	# ignores clipping
-SN	bases mapped:	312512	# ignores clipping
-SN	bases mapped (cigar):	312375	# more accurate
+SN	bases mapped:	360036	# ignores clipping
+SN	bases mapped (cigar):	359899	# more accurate
 SN	bases trimmed:	0
 SN	bases duplicated:	0
-SN	mismatches:	10651	# from NM fields
-SN	error rate:	3.409684e-02	# mismatches / bases mapped (cigar)
-SN	average length:	14405
-SN	average first fragment length:	14405
+SN	mismatches:	10800	# from NM fields
+SN	error rate:	3.000842e-02	# mismatches / bases mapped (cigar)
+SN	average length:	14401
+SN	average first fragment length:	14401
 SN	average last fragment length:	0
-SN	maximum length:	18158
-SN	maximum first fragment length:	18158
+SN	maximum length:	18213
+SN	maximum first fragment length:	18213
 SN	maximum last fragment length:	0
-SN	average quality:	23.4
+SN	average quality:	29.2
 SN	insert size average:	0.0
 SN	insert size standard deviation:	0.0
 SN	inward oriented pairs:	0
@@ -69,24 +69,21 @@ SN	percentage of properly paired reads (%):	0.0
 
 ---- VARIANT SUMMARY ----
 SN	0	number of samples:	1
-SN	0	number of records:	151
+SN	0	number of records:	7
 SN	0	number of no-ALTs:	0
-SN	0	number of SNPs:	24
+SN	0	number of SNPs:	5
 SN	0	number of MNPs:	0
-SN	0	number of indels:	127
+SN	0	number of indels:	2
 SN	0	number of others:	0
 SN	0	number of multiallelic sites:	0
 SN	0	number of multiallelic SNP sites:	0
 
 ---- VARIANT PREVIEW (first 10) ----
 CHROM      POS        REF    ALT    QUAL     FILTER    
-chr20      100422     C      T      0.9      RefCall   
-chr20      100515     G      GC     0.1      RefCall   
-chr20      100803     A      T      0.5      RefCall   
-chr20      100819     G      A      17.7     PASS      
-chr20      100942     G      GA     0.1      RefCall   
-chr20      101040     CA     C      0        RefCall   
-chr20      101070     A      T      1.2      RefCall   
-chr20      101101     CT     C      0        RefCall   
-chr20      101417     C      CT     0        RefCall   
-chr20      101470     G      GA     0        RefCall   
+chr20      101715     C      A      119.415  PASS      
+chr20      102856     T      G      225.417  PASS      
+chr20      103529     T      C      225.417  PASS      
+chr20      108771     A      G      225.417  PASS      
+chr20      113301     CG     C      3.57324  LowQual   
+chr20      113344     T      G      225.417  PASS      
+chr20      117057     T      TA     6.50122  LowQual   

@@ -1,6 +1,6 @@
 # pacbio-hifi-variant-nextflow-pipeline
 
-Nextflow DSL2 pipeline for PacBio HiFi variant calling. Supports minimap2 and pbmm2 alignment with bcftools, Clair3, and DeepVariant variant callers. Fully containerized with Docker. Packaged with benchmarking tools for method validation and testing.
+Nextflow DSL2 pipeline for PacBio HiFi variant calling. Supports minimap2 and pbmm2 alignment with either bcftools, Clair3, or DeepVariant variant callers. Fully containerized with Docker. Supports multi-sample batch processing via samplesheet input with a harmonized HTML summary report.
 
 # Overview
 
@@ -12,12 +12,15 @@ This pipeline provides a reproducible, containerized workflow for:
 
 * Generating per-sample QC reports with alignment statistics, coverage plots, and variant summaries
 
-* Benchmarking variant callers against synthetic test data with a known truth VCF
+* Processing multiple samples in parallel from a CSV samplesheet
+
+* Generating a harmonized multi-sample HTML summary report for cohort-level review
 
 
 ## Table of Contents
 - [Overview](#overview)
 - [Pipeline DAG](#pipeline-dag)
+- [Workflow](#workflow)
 - [Features](#features)
 - [Requirements and Limitations](#requirements-and-limitations)
 - [Quick Start](#quick-start)
@@ -25,7 +28,7 @@ This pipeline provides a reproducible, containerized workflow for:
 - [Usage](#usage)
 - [Parameters](#parameters)
 - [Docker Images](#docker-images)
-- [Benchmarking](#benchmarking)
+- [Output Reports](#output-reports)
 - [Roadmap](#roadmap)
 - [License](#license)
 - [Citations](#citations)
@@ -34,32 +37,86 @@ This pipeline provides a reproducible, containerized workflow for:
 
 ## Pipeline DAG
 
-![Pipeline DAG](https://raw.githubusercontent.com/Fazizzz/pacbio-hifi-variant-nextflow-pipeline/dev/benchmarking/dag_clean.svg)
+![Pipeline DAG](https://raw.githubusercontent.com/Fazizzz/pacbio-hifi-variant-nextflow-pipeline/main/dag_clean.svg)
 
 *Figure 1: Directed acyclic graph (DAG) of the default pipeline execution (minimap2 + bcftools). Docker-only modules (ALIGN_PBMM2, CALL_CLAIR3, CALL_DEEPVARIANT) are present in the pipeline but receive no input unless selected via `--aligner` or `--snv_caller`. Generated with `nextflow run main.nf -profile test -stub-run -with-dag dag.dot` and rendered using `scripts/report/render_dag.sh`.*
+
+## Workflow
+
+```
+samplesheet.csv ─► reads_ch ──────────────────────┐
+  (or --reads)                                     │
+ref_ch ──► INDEX_REFERENCE                        │
+                │                                  │
+                ▼                                  │
+           ref_indexed_ch ◄────────────────────────┘
+                │
+           combine(reads)
+                │
+                ▼
+         branch (--aligner)
+          ├─ minimap2 ──► ALIGN_MINIMAP2
+          └─ pbmm2    ──► ALIGN_PBMM2 (docker only)
+                │
+               mix
+                │
+                ▼
+             bam_ch
+                │
+         combine(ref_indexed_ch)
+                │
+                ▼
+         branch (--snv_caller)
+          ├─ bcftools    ──► CALL_BCFTOOLS (default)
+          ├─ clair3      ──► CALL_CLAIR3   (docker only)
+          └─ deepvariant ──► CALL_DEEPVARIANT (docker only)
+                │
+               mix
+                │
+                ▼
+             vcf_ch
+                │
+          join(bam_ch, by: sample)
+                │
+                ▼
+           QC_SUMMARY
+          ┌────┴────┐
+          ▼         ▼
+    qc_report.txt  qc_report.html
+                │
+                ▼
+    generate_multisample_report.py
+                │
+                ▼
+    multisample_summary.html
+```
 
 
 ## Features
 
 * **Two aligners:** minimap2 (default, local + Docker) and pbmm2 (Docker only, PacBio-native)
 
-* **Three variant callers:** bcftools (default), Clair3, and DeepVariant — switchable at runtime via `--snv_caller`
+* **Three variant callers:** bcftools (default), Clair3, and DeepVariant; switchable at runtime via `--snv_caller`
 
 * **Fully containerized:** Docker images for all tools with pinned versions for reproducibility
 
-* **Shell script pipeline:** standalone bash scripts (`scripts/pipeline/`) mirror every Nextflow process and can be run independently for local development, step-by-step validation, or debugging without Nextflow — making the pipeline accessible at multiple levels of complexity
+* **Multi-sample samplesheet input:** process any number of samples in parallel from a CSV file using `--samplesheet`
+
+* **Single-sample mode:** backward-compatible single-sample input via `--reads` and `--sample`
+
+* **Shell script pipeline:** standalone bash scripts (`scripts/pipeline/`) mirror every Nextflow process and can be run independently for local development, step-by-step validation, or debugging without Nextflow, making the pipeline accessible at multiple levels of complexity
 
 * **Single-command runner:** `scripts/run_pipeline.sh` executes the full alignment → variant calling → QC workflow in one command
 
-* **HTML QC reports:** per-sample reports with coverage plots, variant position visualization, and alignment statistics generated by `scripts/report/generate_html_report.py`
+* **Per-sample HTML QC reports:** coverage plots, variant position visualization, and alignment statistics generated by `scripts/report/generate_html_report.py`
+
+* **Multi-sample summary report:** scrollable HTML dashboard for cohort-level QC review, suitable for 50–500 samples, with a variant position track and expandable per-sample detail rows generated by `scripts/report/generate_multisample_report.py`
 
 * **Two branches for different use cases:**
-  - `dev/benchmarking` — single-sample tool validation with synthetic test data, truth VCF comparison, and benchmarking framework. Designed for validating tools and methods before production deployment
-  - `main` — production-ready multi-sample framework (in development)
+  - `main`: production-ready multi-sample pipeline with samplesheet input
+  - `dev/benchmarking`: single-sample tool validation with synthetic test data, truth VCF comparison, and benchmarking framework
 
-* **Benchmarking framework:** inject known mutations into a reference, simulate HiFi reads with pbsim3, align, call variants, and compare results against a truth VCF — all with provided scripts
-
-* **CI/CD:** GitHub Actions workflow validates the pipeline on every push to `dev/benchmarking`
+* **CI/CD:** GitHub Actions workflow validates the pipeline on every push
 
 
 ## Requirements and Limitations
@@ -70,7 +127,7 @@ This pipeline provides a reproducible, containerized workflow for:
 * Docker Desktop (Mac) or Docker Engine (Linux)
 * Conda or Mamba (for local development)
 * Python 3.10
-* minimap2=2.28, samtools=1.19, bcftools=1.19, seqkit=2.8, pbsim3=3.0, matplotlib=3.8
+* minimap2=2.28, samtools=1.19, bcftools=1.19, seqkit=2.8, matplotlib=3.8
 
 ### Development Environment
 
@@ -108,7 +165,6 @@ The default bcftools workflow is fully validated on Mac and Linux and is recomme
 # Clone the repository
 git clone https://github.com/Fazizzz/pacbio-hifi-variant-nextflow-pipeline.git
 cd pacbio-hifi-variant-nextflow-pipeline
-git checkout dev/benchmarking
 
 # Create conda environment
 conda env create -f environment.yml
@@ -117,25 +173,31 @@ conda activate pacbio_nf
 # Validate Nextflow is installed
 nextflow -version
 
-# Run the test pipeline locally (minimap2 + bcftools, no Docker)
+# Run the test pipeline locally (single sample, minimap2 + bcftools, no Docker)
 nextflow run main.nf -profile test
 
 # Validate Docker is installed and working
 docker run hello-world
 
-# Run with Docker
+# Run with Docker (single sample)
 nextflow run main.nf -profile docker,test
+
+# Run multi-sample with samplesheet
+nextflow run main.nf -profile docker \
+    --samplesheet test_data/samplesheet.csv \
+    --reference   reference/chr20.fa \
+    --outdir      results
 ```
 
-A successful local run produces:
+A successful multi-sample run produces:
 
 ```
 ============================================
 Pipeline completed successfully
 ============================================
-Duration    : ~12s
-Output dir  : test_results
-Reports     : test_results/reports/
+Duration    : ~25s (4 samples)
+Output dir  : results
+Reports     : results/reports/
 ============================================
 ```
 
@@ -162,7 +224,7 @@ docker build --build-arg ALIGNER=pbmm2 \
     -t pacbio-hifi-pipeline:pbmm2 \
     containers/pipeline/
 
-# Clair3 image
+# Clair3 image (step may take several minutes)
 docker build -t pacbio-hifi-clair3:1.0 containers/clair3/
 
 # DeepVariant — official Google image, no build required
@@ -180,14 +242,46 @@ docker run --rm pacbio-hifi-pipeline:1.0 bcftools --version
 
 ## Usage
 
+### Samplesheet Format
+
+For multi-sample runs, provide a CSV file with one sample per line. No header is required:
+
+```
+sample_name,/path/to/reads.fastq
+sample_A,data/sample_A.fastq
+sample_B,data/sample_B.fastq
+sample_C,data/sample_C.fastq
+```
+
+An example samplesheet is provided at `test_data/samplesheet.csv`.
+
+### Multi-Sample Pipeline (recommended)
+
+```bash
+nextflow run main.nf -profile docker \
+    --samplesheet test_data/samplesheet.csv \
+    --reference   reference/chr20.fa \
+    --outdir      results
+```
+
+### Single-Sample Pipeline
+
+```bash
+nextflow run main.nf -profile docker \
+    --reads     data/reads.fastq \
+    --reference reference/ref.fa \
+    --sample    sample_name \
+    --outdir    results
+```
+
 ### Local Shell Pipeline
 
 Run the full pipeline in a single command using the validated shell scripts:
 
 ```bash
 bash scripts/run_pipeline.sh \
-    -r reference/chr20.fa \
-    -i test_data/synthetic_reads.fastq \
+    -r reference/ref.fa \
+    -i data/reads.fastq \
     -s sample_name \
     -o results \
     -t 4
@@ -198,14 +292,14 @@ Individual steps can also be run independently:
 ```bash
 # Alignment only
 bash scripts/pipeline/align_minimap2.sh \
-    -r reference/chr20.fa \
-    -i test_data/synthetic_reads.fastq \
+    -r reference/ref.fa \
+    -i data/reads.fastq \
     -o results/sample \
     -t 4
 
 # Variant calling only
 bash scripts/pipeline/call_bcftools.sh \
-    -r reference/chr20.fa \
+    -r reference/ref.fa \
     -b results/sample.bam \
     -o results/sample \
     -t 4
@@ -214,64 +308,41 @@ bash scripts/pipeline/call_bcftools.sh \
 bash scripts/pipeline/qc_summary.sh \
     -b results/sample.bam \
     -v results/sample_norm.vcf.gz \
-    -r reference/chr20.fa \
+    -r reference/ref.fa \
     -o results/sample
 ```
 
-### Nextflow Pipeline
+### Aligner and Caller Options
 
-**Default run — minimap2 + bcftools, local conda:**
-
-```bash
-nextflow run main.nf \
-    --reads     test_data/synthetic_reads.fastq \
-    --reference reference/chr20.fa \
-    --sample    synthetic_reads \
-    --outdir    results
-```
-
-**Docker run — minimap2 + bcftools:**
+**pbmm2 aligner (Docker only):**
 
 ```bash
 nextflow run main.nf -profile docker \
-    --reads     test_data/synthetic_reads.fastq \
-    --reference reference/chr20.fa \
-    --sample    synthetic_reads \
-    --outdir    results
+    --aligner     pbmm2 \
+    --samplesheet test_data/samplesheet.csv \
+    --reference   reference/ref.fa \
+    --outdir      results
 ```
 
-**Docker run — pbmm2 aligner:**
-
-```bash
-nextflow run main.nf -profile docker \
-    --aligner   pbmm2 \
-    --reads     test_data/synthetic_reads.fastq \
-    --reference reference/chr20.fa \
-    --sample    synthetic_reads \
-    --outdir    results
-```
-
-**Docker run — Clair3 variant caller:**
+**Clair3 variant caller (Docker only):**
 
 ```bash
 nextflow run main.nf -profile docker \
     --snv_caller   clair3 \
     --clair3_model /opt/models/hifi \
-    --reads        test_data/synthetic_reads.fastq \
-    --reference    reference/chr20.fa \
-    --sample       synthetic_reads \
+    --samplesheet  test_data/samplesheet.csv \
+    --reference    reference/ref.fa \
     --outdir       results
 ```
 
-**Docker run — DeepVariant variant caller:**
+**DeepVariant variant caller (Docker only):**
 
 ```bash
 nextflow run main.nf -profile docker \
-    --snv_caller deepvariant \
-    --reads      test_data/synthetic_reads.fastq \
-    --reference  reference/chr20.fa \
-    --sample     synthetic_reads \
-    --outdir     results
+    --snv_caller  deepvariant \
+    --samplesheet test_data/samplesheet.csv \
+    --reference   reference/ref.fa \
+    --outdir      results
 ```
 
 **Test profile:**
@@ -287,14 +358,32 @@ nextflow run main.nf -profile docker,test
 nextflow run main.nf -params-file params.yaml
 ```
 
+### Multi-Sample Summary Report
+
+After the pipeline completes, generate a harmonized HTML summary report across all samples:
+
+```bash
+python scripts/report/generate_multisample_report.py \
+    --reports "results/reports/*_qc_report.txt" \
+    --output  results/reports/multisample_summary.html
+```
+
+The report auto-scales based on variant data:
+- **Single chromosome ≤ 10Mb:** per-variant marker track with hover tooltips
+- **Single chromosome > 10Mb:** binned density track (500 windows)
+- **Multiple chromosomes:** variant count bar chart with a note
+
+> **Note:** Multi-chromosome coverage plots are not yet supported in per-sample reports and will be skipped with a note. See [Roadmap](#roadmap).
+
 
 ## Parameters
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `--reads` | Path to input HiFi FASTQ file | required |
+| `--samplesheet` | CSV samplesheet for multi-sample runs | `null` |
+| `--reads` | Path to input HiFi FASTQ (single-sample mode) | `null` |
 | `--reference` | Path to reference FASTA file | required |
-| `--sample` | Sample name for output file naming | required |
+| `--sample` | Sample name (single-sample mode only) | `null` |
 | `--outdir` | Output directory | `results` |
 | `--aligner` | Aligner: `minimap2` or `pbmm2` | `minimap2` |
 | `--snv_caller` | Variant caller: `bcftools`, `clair3`, or `deepvariant` | `bcftools` |
@@ -320,103 +409,32 @@ nextflow run main.nf -params-file params.yaml
 > **Module structure note:** This pipeline separates modules into `modules/local/` (conda or Docker) and `modules/docker/` (Docker only), intentionally deviating from strict nf-core convention to make Docker dependencies immediately visible from the directory structure.
 
 
-## Benchmarking
+## Output Reports
 
-### Synthetic Test Data Generation
+### Per-Sample QC Report
 
-The `dev/benchmarking` branch includes a complete framework for generating synthetic test data with known ground-truth variants. This allows rigorous validation of any variant caller against injected mutations where the answer is known.
+Each sample produces an HTML report with alignment metrics, per-base coverage plot, and variant position visualization.
 
-The workflow uses two Python scripts:
+![Per-Sample QC Report](https://raw.githubusercontent.com/Fazizzz/pacbio-hifi-variant-nextflow-pipeline/main/results_multisample/reports/Screenshot.png)
 
-**Step 1 — Inject synthetic SNVs into a reference:**
+*Figure 2: Per-sample HTML QC report showing alignment metrics, per-base coverage across the sequenced region with mean depth reference line, and variant position track showing PASS and LowQual filtered variants.*
 
-```bash
-python scripts/add_mutations_to_chr.py \
-    --reference reference/chr20.fa \
-    --chrom chr20 \
-    --region_start 100000 \
-    --region_end 118000 \
-    --num_mutations 10 \
-    --min_distance 500 \
-    --seed 42 \
-    --outdir test_data
-```
+### Multi-Sample Summary Report
 
-This produces:
-* `test_data/chr20_mutated.fa` — reference with 10 SNVs injected at known positions
-* `test_data/truth_variants.vcf` — ground-truth VCF for downstream comparison
+After running `generate_multisample_report.py`, a single scrollable dashboard aggregates all samples with color-coded quality metrics and an expandable per-sample detail section.
 
-**Step 2 — Simulate PacBio HiFi reads from the mutated reference:**
+![Multi-Sample Summary Report](https://raw.githubusercontent.com/Fazizzz/pacbio-hifi-variant-nextflow-pipeline/main/results_multisample/reports/Screenshot-2.png)
 
-```bash
-python scripts/generate_synthetic_reads.py \
-    --reference test_data/chr20_mutated.fa \
-    --chrom chr20 \
-    --start 100000 \
-    --end 118000 \
-    --depth 20 \
-    --outdir test_data
-```
-
-This uses pbsim3 with the `QSHMM-PACBIO-CCS` model to simulate realistic HiFi reads (Q20+, ~15kb mean length) at 20x depth over the mutated region.
-
-> **pbsim3 model note:** The `QSHMM-PACBIO-CCS.model` file is not included in the pbsim3 conda package. Download it before regenerating reads:
-> ```bash
-> curl -L https://raw.githubusercontent.com/yukiteruono/pbsim3/master/data/QSHMM-PACBIO-CCS.model \
->     -o $CONDA_PREFIX/data/QSHMM-PACBIO-CCS.model
-> ```
-> The pre-generated test data in `test_data/` does not require this step.
-
-### Provided Test Dataset
-
-The `test_data/` directory contains a pre-generated synthetic dataset ready to use:
-
-| File | Description |
-|------|-------------|
-| `synthetic_reads.fastq` | 25 synthetic PacBio HiFi reads, 20x depth, ~15kb mean length |
-| `truth_variants.vcf` | 10 known SNVs at positions 100819–117870 on chr20 |
-| `reference_region.fa` | Extracted chr20:100000-118000 reference region |
-
-### Validation Results
-
-The pipeline was validated locally on a MacBook Pro (6-core Intel i7, 16GB RAM) using the synthetic test dataset. All tool combinations were run end-to-end and results compared against the truth VCF.
-
-**Alignment (minimap2, default):**
-
-| Metric | Result |
-|--------|--------|
-| Total reads | 25 |
-| Mapped reads | 22 / 25 |
-| Mapping rate | 88.00% |
-| Mean read length | 14,405 bp |
-| Sequencing depth | 20x |
-
-**Variant calling (bcftools, default):**
-
-| Metric | Result |
-|--------|--------|
-| Truth SNVs injected | 10 |
-| Total variants called | 10 |
-| SNPs recovered | 8 / 10 |
-| Indels (boundary artifacts) | 2 |
-| PASS variants | 8 |
-| LowQual filtered | 2 |
-
-> 3 unmapped reads and 2 boundary indels are expected — reads simulated near the 18kb region boundaries extend beyond the reference. These are not pipeline failures.
-
-### Example QC Report
-
-![QC Report](https://raw.githubusercontent.com/Fazizzz/pacbio-hifi-variant-nextflow-pipeline/dev/benchmarking/test_results_minimap2/reports/Screenshot.png)
-
-*Figure 2: Example HTML QC report generated for the synthetic chr20 test dataset (minimap2 + bcftools). The report includes alignment metrics, per-base coverage plot with mean depth reference line, variant position plot showing PASS and LowQual filtered variants, and a full variant summary table.*
+*Figure 3: Multi-sample HTML summary report showing four synthetic test samples. The variant position track displays all samples in parallel rows across the reference region. The summary table shows alignment and variant metrics with color-coded pass/warn/fail indicators. Click any row to expand the full per-sample QC report inline.*
 
 
 ## Roadmap
 
-- [ ] Multi-sample samplesheet input (`main` branch)
 - [ ] Directory input mode for batch processing
+- [ ] Add multi-chromosome support for QC summary coverage plot
 - [ ] Singularity profile for HPC environments
 - [ ] RTG vcfeval integration for automated truth VCF benchmarking
+- [ ] CNV and SV calling with additional variant calling tools
 - [ ] DeepVariant GPU profile
 - [ ] Clair3 Linux validation with full benchmarking results
 - [ ] nf-core submission
@@ -482,11 +500,11 @@ Anaconda Software Distribution. Computer software. Vers. 2-2.4.0. Anaconda, Nov.
 
 Muhammad Faizan Khalid — Author and current maintainer
 
-This pipeline grew out of a desire to build something practical — a variant calling framework that's reproducible, well-documented, and actually usable as a starting point for real PacBio HiFi analysis. It was developed as part of an ongoing portfolio in bioinformatics pipeline engineering, with a focus on long-read sequencing, containerization, and method validation.
+This pipeline grew out of a desire to build something practical using my personal experience with PacBio sequencing and tools. A variant calling framework that's reproducible, well-documented, and actually usable as a starting point for real PacBio HiFi analysis. It was developed as part of an ongoing portfolio in bioinformatics pipeline engineering, with a focus on long-read sequencing, containerization, and method validation.
 
-The pipeline architecture draws inspiration from [nf-core/pacvar](https://github.com/nf-core/pacvar) and follows nf-core DSL2 module conventions with intentional deviations documented in the codebase. The benchmarking framework — synthetic read generation, truth variant injection, and end-to-end validation — reflects the kind of rigorous testing approach used in clinical and production sequencing environments.
+The pipeline architecture draws inspiration from [nf-core/pacvar](https://github.com/nf-core/pacvar) and follows nf-core DSL2 module conventions with intentional deviations documented in the codebase. The multi-sample framework and harmonized reporting tools reflect the kind of scalable approach needed in production sequencing environments handling tens to hundreds of samples.
 
-This repository is provided for educational and demonstration purposes. It is not a commercial product. The code is provided "as is," without warranty of any kind. Bugs and feedback are welcome through the repository's issue tracker.
+This repository is provided for educational and demonstration purposes. It includes well commented scripts and streamlined analysis for low compute resources, for ease of use and local implementation. It is not a commercial product. The code is provided "as is," without warranty of any kind. Bugs and feedback are welcome through the repository's issue tracker.
 
 For citation or attribution, please reference:
 Khalid, M. Faizan (or Khalid MF)

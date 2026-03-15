@@ -9,14 +9,20 @@
         "input_output_options": {
             "title": "Input / Output",
             "type": "object",
-            "description": "Required input files and output directory.",
-            "required": ["reads", "reference", "sample"],
+            "description": "Input files and output directory. Provide either --samplesheet (multi-sample) or --reads + --sample (single sample).",
             "properties": {
+
+                "samplesheet": {
+                    "type": "string",
+                    "description": "Path to samplesheet CSV for multi-sample runs.",
+                    "help_text": "CSV file with format: sample_name,/path/to/reads.fastq. No header required. Example: samplesheet.csv",
+                    "fa_icon": "fas fa-file-csv"
+                },
 
                 "reads": {
                     "type": "string",
-                    "description": "Path to input HiFi FASTQ file.",
-                    "help_text": "PacBio HiFi (CCS) reads in FASTQ or FASTQ.GZ format. Example: test_data/synthetic_reads.fastq",
+                    "description": "Path to input HiFi FASTQ file (single sample mode).",
+                    "help_text": "PacBio HiFi (CCS) reads in FASTQ or FASTQ.GZ format. Use --samplesheet for multiple samples. Example: test_data/synthetic_reads.fastq",
                     "fa_icon": "fas fa-file"
                 },
 
@@ -29,8 +35,8 @@
 
                 "sample": {
                     "type": "string",
-                    "description": "Sample name used for output file naming.",
-                    "help_text": "Used as the prefix for all output files. Avoid spaces and slashes. Example: sample_001",
+                    "description": "Sample name for single-sample mode output file naming.",
+                    "help_text": "Required when using --reads. Used as the prefix for all output files. Avoid spaces and slashes. Example: sample_001",
                     "fa_icon": "fas fa-tag"
                 },
 
@@ -53,7 +59,7 @@
                 "aligner": {
                     "type": "string",
                     "description": "Aligner to use for read mapping.",
-                    "help_text": "minimap2 runs locally via conda or Docker. pbmm2 requires -profile docker and is not installable on Intel Mac via conda above v1.7.0.",
+                    "help_text": "minimap2 runs locally via conda or Docker. pbmm2 requires -profile docker.",
                     "default": "minimap2",
                     "enum": ["minimap2", "pbmm2"],
                     "fa_icon": "fas fa-align-left"
@@ -62,7 +68,7 @@
                 "snv_caller": {
                     "type": "string",
                     "description": "SNV variant caller to use.",
-                    "help_text": "bcftools runs locally via conda or Docker. clair3 and deepvariant require -profile docker. clair3 also requires --clair3_model.",
+                    "help_text": "bcftools runs locally via conda or Docker. clair3 and deepvariant require -profile docker.",
                     "default": "bcftools",
                     "enum": ["bcftools", "clair3", "deepvariant"],
                     "fa_icon": "fas fa-dna"
@@ -71,7 +77,6 @@
                 "threads": {
                     "type": "integer",
                     "description": "Number of threads for alignment and variant calling.",
-                    "help_text": "Used as a fallback. Process-level threading is controlled by the resource label in nextflow.config via task.cpus.",
                     "default": 4,
                     "minimum": 1,
                     "fa_icon": "fas fa-microchip"
@@ -88,7 +93,7 @@
                 "clair3_model": {
                     "type": "string",
                     "description": "Path to Clair3 pre-trained model directory.",
-                    "help_text": "Required when --snv_caller clair3. Model files are not included in the container. Download from: https://github.com/HKU-BAL/Clair3#pre-trained-models",
+                    "help_text": "Required when --snv_caller clair3. Container-internal paths (e.g. /opt/models/hifi) are accepted.",
                     "fa_icon": "fas fa-brain"
                 }
             }
@@ -97,12 +102,12 @@
         "container_options": {
             "title": "Container Options",
             "type": "object",
-            "description": "Docker container image versions. Update here to change across all modules.",
+            "description": "Docker container image versions.",
             "properties": {
 
                 "pipeline_container": {
                     "type": "string",
-                    "description": "Main pipeline Docker image (minimap2 + samtools + bcftools + seqkit).",
+                    "description": "Main pipeline Docker image.",
                     "default": "pacbio-hifi-pipeline:1.0",
                     "fa_icon": "fab fa-docker"
                 },
@@ -123,7 +128,7 @@
 
                 "deepvariant_container": {
                     "type": "string",
-                    "description": "DeepVariant Docker image (official Google image).",
+                    "description": "DeepVariant Docker image.",
                     "default": "google/deepvariant:1.6.1",
                     "fa_icon": "fab fa-docker"
                 }

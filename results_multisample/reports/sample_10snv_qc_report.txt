@@ -1,7 +1,7 @@
 ============================================
 PacBio HiFi Pipeline QC Report
-Sample    : synthetic_reads_pbmm2_dv
-Generated : 2026-03-15 09:27:40
+Sample    : sample_10snv
+Generated : 2026-03-15 21:20:35
 ============================================
 
 ---- ALIGNMENT METRICS ----
@@ -69,24 +69,24 @@ SN	percentage of properly paired reads (%):	0.0
 
 ---- VARIANT SUMMARY ----
 SN	0	number of samples:	1
-SN	0	number of records:	151
+SN	0	number of records:	10
 SN	0	number of no-ALTs:	0
-SN	0	number of SNPs:	24
+SN	0	number of SNPs:	8
 SN	0	number of MNPs:	0
-SN	0	number of indels:	127
+SN	0	number of indels:	2
 SN	0	number of others:	0
 SN	0	number of multiallelic sites:	0
 SN	0	number of multiallelic SNP sites:	0
 
 ---- VARIANT PREVIEW (first 10) ----
 CHROM      POS        REF    ALT    QUAL     FILTER    
-chr20      100422     C      T      0.9      RefCall   
-chr20      100515     G      GC     0.1      RefCall   
-chr20      100803     A      T      0.5      RefCall   
-chr20      100819     G      A      17.7     PASS      
-chr20      100942     G      GA     0.1      RefCall   
-chr20      101040     CA     C      0        RefCall   
-chr20      101070     A      T      1.2      RefCall   
-chr20      101101     CT     C      0        RefCall   
-chr20      101417     C      CT     0        RefCall   
-chr20      101470     G      GA     0        RefCall   
+chr20      101985     TA     T      16.5012  LowQual   
+chr20      102848     T      G      66.4148  PASS      
+chr20      103648     C      T      180.416  PASS      
+chr20      104300     G      GA     11.4499  LowQual   
+chr20      104572     A      T      180.416  PASS      
+chr20      107314     G      T      188.416  PASS      
+chr20      108024     G      A      188.416  PASS      
+chr20      109012     C      T      188.416  PASS      
+chr20      113825     T      C      175.416  PASS      
+chr20      116559     G      A      129.416  PASS      

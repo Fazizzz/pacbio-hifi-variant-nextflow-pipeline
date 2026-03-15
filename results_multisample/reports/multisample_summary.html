@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PacBio HiFi — Multi-Sample QC</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;font-size:13px;color:#333;background:#f8f8f8}
+
+/* ---- Sticky top bar ---- */
+#topbar{
+  background:#1a1a2e;color:#fff;
+  padding:14px 24px;
+  position:sticky;top:0;z-index:200;
+  display:flex;align-items:center;justify-content:space-between;
+}
+#topbar h1{font-size:15px;font-weight:700}
+.hm{font-size:11px;color:#aaa;margin-top:2px}
+.bdg{display:flex;gap:8px}
+.b{padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700}
+.bp{background:#2e7d32;color:#fff}.bw{background:#f57c00;color:#fff}
+.bf{background:#c62828;color:#fff}.bt{background:#444;color:#fff}
+
+/* ---- Legend bar (sticky, sits below top bar) ---- */
+#legbar{
+  background:#fff;border-bottom:1px solid #eee;
+  padding:7px 24px;
+  position:sticky;top:53px;z-index:150;
+  display:flex;gap:14px;align-items:center;flex-wrap:wrap;
+  font-size:11px;color:#666;
+}
+.li{display:flex;align-items:center;gap:4px}
+.ld{width:9px;height:9px;border-radius:50%;display:inline-block}
+
+/* ---- Table wrapper — NO overflow, let page scroll ---- */
+.tw{padding:0 24px 16px;padding-top:8px}
+
+table{
+  width:100%;border-collapse:collapse;background:#fff;
+  box-shadow:0 1px 4px rgba(0,0,0,.08);
+}
+
+/* ---- Sticky thead — applied to <thead> not <th> ---- */
+thead{
+  position:sticky;
+  top:0;   /* JS sets this to topbar+legbar height after load */
+  z-index:100;
+  box-shadow:0 2px 4px rgba(0,0,0,.15);
+}
+thead th{
+  background:#1a1a2e;color:#fff;
+  padding:10px 12px;text-align:left;
+  font-size:11px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;
+}
+
+.sr{cursor:pointer;border-bottom:1px solid #eee;transition:background .1s}
+.sr:hover{background:#f0f4ff}
+td{padding:8px 12px;white-space:nowrap}
+.sn{font-weight:700;color:#1a1a2e;min-width:160px}
+.ei{font-size:10px;color:#888;margin-left:4px}
+.q-pass{color:#2e7d32;font-weight:700}.q-warn{color:#e65100;font-weight:700}
+.q-fail{color:#c62828;font-weight:700}.q-neutral{color:#333}.q-na{color:#aaa}
+
+.db{background:#f4f4f4;border-left:3px solid #1a1a2e;
+  padding:12px 16px;margin:4px 8px 8px;border-radius:4px}
+.dm{font-size:11px;color:#555;margin-bottom:8px}
+.dp{font-size:11px;white-space:pre-wrap;word-wrap:break-word;
+  max-height:350px;overflow-y:auto;background:#fff;
+  padding:10px;border:1px solid #ddd;border-radius:4px}
+
+.sec{padding:16px 24px 8px}
+.st{font-size:11px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.5px;color:#888;margin-bottom:8px}
+.ft{padding:16px 24px;font-size:11px;color:#aaa;
+  border-top:1px solid #ddd;margin-top:8px}
+</style>
+</head>
+<body>
+
+<!-- 1. Sticky top bar -->
+<div id="topbar">
+  <div>
+    <h1>PacBio HiFi Variant Pipeline — Multi-Sample QC Summary</h1>
+    <div class="hm">Generated: 2026-03-15 17:53:46</div>
+  </div>
+  <div class="bdg">
+    <span class="b bt">4 samples</span>
+    <span class="b bp">4 pass</span>
+    <span class="b bw">0 warn</span>
+    <span class="b bf">0 fail</span>
+  </div>
+</div>
+
+<!-- 2. Sticky legend bar (below top bar) -->
+<div id="legbar">
+  <span>Mapping rate:</span>
+  <span class="li"><span class="ld" style="background:#2e7d32"></span>≥85% pass</span>
+  <span class="li"><span class="ld" style="background:#e65100"></span>70–85% warn</span>
+  <span class="li"><span class="ld" style="background:#c62828"></span>&lt;70% fail</span>
+  <span style="margin-left:8px;color:#aaa">Click any row to expand full QC report</span>
+</div>
+
+<!-- 3. Summary table (no scroll container — page scrolls) -->
+<div class="tw">
+<table id="t">
+  <thead>
+    <tr>
+      <th>Sample</th><th>Total reads</th><th>Mapped</th><th>Mapping rate (%)</th>
+      <th>Mean length (bp)</th><th>Avg quality</th><th>Mean depth</th>
+      <th>Total variants</th><th>SNPs</th><th>Indels</th><th>PASS variants</th>
+    </tr>
+  </thead>
+  <tbody><tr class="sr" data-detail="s0">
+  <td class="sn">sample_10snv <span class="ei">▼</span></td>
+  <td>25</td>
+  <td class="q-neutral">22</td>
+  <td class="q-pass">88.00</td>
+  <td>14405</td>
+  <td class="q-pass">23.4</td>
+  <td class="q-fail">0.00476903</td>
+  <td>10</td>
+  <td>8</td>
+  <td>2</td>
+  <td>8</td>
+</tr>
+<tr id="s0" style="display:none;"><td colspan="11"><div class="db">
+  <div class="dm"><b>Sample:</b> sample_10snv &nbsp;|&nbsp;
+  <b>Generated:</b> 2026-03-15 21:20:35</div>
+  <pre class="dp">============================================
+PacBio HiFi Pipeline QC Report
+Sample    : sample_10snv
+Generated : 2026-03-15 21:20:35
+============================================
+
+---- ALIGNMENT METRICS ----
+25 + 0 in total (QC-passed reads + QC-failed reads)
+25 + 0 primary
+0 + 0 secondary
+0 + 0 supplementary
+0 + 0 duplicates
+0 + 0 primary duplicates
+22 + 0 mapped (88.00% : N/A)
+22 + 0 primary mapped (88.00% : N/A)
+0 + 0 paired in sequencing
+0 + 0 read1
+0 + 0 read2
+0 + 0 properly paired (N/A : N/A)
+0 + 0 with itself and mate mapped
+0 + 0 singletons (N/A : N/A)
+0 + 0 with mate mapped to a different chr
+0 + 0 with mate mapped to a different chr (mapQ&gt;=5)
+
+---- COVERAGE METRICS ----
+#rname	startpos	endpos	numreads	covbases	coverage	meandepth	meanbaseq	meanmapq
+chr20	1	64444167	22	18000	0.0279312	0.00476903	26.2	60
+
+---- READ METRICS ----
+SN	raw total sequences:	25	# excluding supplementary and secondary reads
+SN	filtered sequences:	0
+SN	sequences:	25
+SN	is sorted:	1	# sorted by coordinate
+SN	1st fragments:	25
+SN	last fragments:	0
+SN	reads mapped:	22
+SN	reads mapped and paired:	0	# paired-end technology bit set + both mates mapped
+SN	reads unmapped:	3
+SN	reads properly paired:	0	# proper-pair bit set
+SN	reads paired:	0	# paired-end technology bit set
+SN	reads duplicated:	0	# PCR or optical duplicate bit set
+SN	reads MQ0:	0	# mapped and MQ=0
+SN	reads QC failed:	0
+SN	non-primary alignments:	0
+SN	supplementary alignments:	0
+SN	total length:	360124	# ignores clipping
+SN	total first fragment length:	360124	# ignores clipping
+SN	total last fragment length:	0	# ignores clipping
+SN	bases mapped:	312512	# ignores clipping
+SN	bases mapped (cigar):	312375	# more accurate
+SN	bases trimmed:	0
+SN	bases duplicated:	0
+SN	mismatches:	10651	# from NM fields
+SN	error rate:	3.409684e-02	# mismatches / bases mapped (cigar)
+SN	average length:	14405
+SN	average first fragment length:	14405
+SN	average last fragment length:	0
+SN	maximum length:	18158
+SN	maximum first fragment length:	18158
+SN	maximum last fragment length:	0
+SN	average quality:	23.4
+SN	insert size average:	0.0
+SN	insert size standard deviation:	0.0
+SN	inward oriented pairs:	0
+SN	outward oriented pairs:	0
+SN	pairs with other orientation:	0
+SN	pairs on different chromosomes:	0
+SN	percentage of properly paired reads (%):	0.0
+
+---- VARIANT SUMMARY ----
+SN	0	number of samples:	1
+SN	0	number of records:	10
+SN	0	number of no-ALTs:	0
+SN	0	number of SNPs:	8
+SN	0	number of MNPs:	0
+SN	0	number of indels:	2
+SN	0	number of others:	0
+SN	0	number of multiallelic sites:	0
+SN	0	number of multiallelic SNP sites:	0
+
+---- VARIANT PREVIEW (first 10) ----
+CHROM      POS        REF    ALT    QUAL     FILTER    
+chr20      101985     TA     T      16.5012  LowQual   
+chr20      102848     T      G      66.4148  PASS      
+chr20      103648     C      T      180.416  PASS      
+chr20      104300     G      GA     11.4499  LowQual   
+chr20      104572     A      T      180.416  PASS      
+chr20      107314     G      T      188.416  PASS      
+chr20      108024     G      A      188.416  PASS      
+chr20      109012     C      T      188.416  PASS      
+chr20      113825     T      C      175.416  PASS      
+chr20      116559     G      A      129.416  PASS      
+</pre>
+</div></td></tr>
+<tr class="sr" data-detail="s1">
+  <td class="sn">sample_1snv <span class="ei">▼</span></td>
+  <td>25</td>
+  <td class="q-neutral">25</td>
+  <td class="q-pass">100.00</td>
+  <td>14401</td>
+  <td class="q-pass">33.1</td>
+  <td class="q-fail">0.0054633</td>
+  <td>1</td>
+  <td>1</td>
+  <td>0</td>
+  <td>1</td>
+</tr>
+<tr id="s1" style="display:none;"><td colspan="11"><div class="db">
+  <div class="dm"><b>Sample:</b> sample_1snv &nbsp;|&nbsp;
+  <b>Generated:</b> 2026-03-15 21:20:37</div>
+  <pre class="dp">============================================
+PacBio HiFi Pipeline QC Report
+Sample    : sample_1snv
+Generated : 2026-03-15 21:20:37
+============================================
+
+---- ALIGNMENT METRICS ----
+25 + 0 in total (QC-passed reads + QC-failed reads)
+25 + 0 primary
+0 + 0 secondary
+0 + 0 supplementary
+0 + 0 duplicates
+0 + 0 primary duplicates
+25 + 0 mapped (100.00% : N/A)
+25 + 0 primary mapped (100.00% : N/A)
+0 + 0 paired in sequencing
+0 + 0 read1
+0 + 0 read2
+0 + 0 properly paired (N/A : N/A)
+0 + 0 with itself and mate mapped
+0 + 0 singletons (N/A : N/A)
+0 + 0 with mate mapped to a different chr
+0 + 0 with mate mapped to a different chr (mapQ&gt;=5)
+
+---- COVERAGE METRICS ----
+#rname	startpos	endpos	numreads	covbases	coverage	meandepth	meanbaseq	meanmapq
+chr20	1	64444167	25	17863	0.0277186	0.0054633	33.6	60
+
+---- READ METRICS ----
+SN	raw total sequences:	25	# excluding supplementary and secondary reads
+SN	filtered sequences:	0
+SN	sequences:	25
+SN	is sorted:	1	# sorted by coordinate
+SN	1st fragments:	25
+SN	last fragments:	0
+SN	reads mapped:	25
+SN	reads mapped and paired:	0	# paired-end technology bit set + both mates mapped
+SN	reads unmapped:	0
+SN	reads properly paired:	0	# proper-pair bit set
+SN	reads paired:	0	# paired-end technology bit set
+SN	reads duplicated:	0	# PCR or optical duplicate bit set
+SN	reads MQ0:	0	# mapped and MQ=0
+SN	reads QC failed:	0
+SN	non-primary alignments:	0
+SN	supplementary alignments:	0
+SN	total length:	360024	# ignores clipping
+SN	total first fragment length:	360024	# ignores clipping
+SN	total last fragment length:	0	# ignores clipping
+SN	bases mapped:	360024	# ignores clipping
+SN	bases mapped (cigar):	359805	# more accurate
+SN	bases trimmed:	0
+SN	bases duplicated:	0
+SN	mismatches:	17873	# from NM fields
+SN	error rate:	4.967413e-02	# mismatches / bases mapped (cigar)
+SN	average length:	14401
+SN	average first fragment length:	14401
+SN	average last fragment length:	0
+SN	maximum length:	17230
+SN	maximum first fragment length:	17230
+SN	maximum last fragment length:	0
+SN	average quality:	33.1
+SN	insert size average:	0.0
+SN	insert size standard deviation:	0.0
+SN	inward oriented pairs:	0
+SN	outward oriented pairs:	0
+SN	pairs with other orientation:	0
+SN	pairs on different chromosomes:	0
+SN	percentage of properly paired reads (%):	0.0
+
+---- VARIANT SUMMARY ----
+SN	0	number of samples:	1
+SN	0	number of records:	1
+SN	0	number of no-ALTs:	0
+SN	0	number of SNPs:	1
+SN	0	number of MNPs:	0
+SN	0	number of indels:	0
+SN	0	number of others:	0
+SN	0	number of multiallelic sites:	0
+SN	0	number of multiallelic SNP sites:	0
+
+---- VARIANT PREVIEW (first 10) ----
+CHROM      POS        REF    ALT    QUAL     FILTER    
+chr20      114726     A      G      150.422  PASS      
+</pre>
+</div></td></tr>
+<tr class="sr" data-detail="s2">
+  <td class="sn">sample_20snv <span class="ei">▼</span></td>
+  <td>25</td>
+  <td class="q-neutral">25</td>
+  <td class="q-pass">100.00</td>
+  <td>14403</td>
+  <td class="q-pass">23.5</td>
+  <td class="q-fail">0.00548206</td>
+  <td>20</td>
+  <td>17</td>
+  <td>3</td>
+  <td>10</td>
+</tr>
+<tr id="s2" style="display:none;"><td colspan="11"><div class="db">
+  <div class="dm"><b>Sample:</b> sample_20snv &nbsp;|&nbsp;
+  <b>Generated:</b> 2026-03-15 21:20:35</div>
+  <pre class="dp">============================================
+PacBio HiFi Pipeline QC Report
+Sample    : sample_20snv
+Generated : 2026-03-15 21:20:35
+============================================
+
+---- ALIGNMENT METRICS ----
+25 + 0 in total (QC-passed reads + QC-failed reads)
+25 + 0 primary
+0 + 0 secondary
+0 + 0 supplementary
+0 + 0 duplicates
+0 + 0 primary duplicates
+25 + 0 mapped (100.00% : N/A)
+25 + 0 primary mapped (100.00% : N/A)
+0 + 0 paired in sequencing
+0 + 0 read1
+0 + 0 read2
+0 + 0 properly paired (N/A : N/A)
+0 + 0 with itself and mate mapped
+0 + 0 singletons (N/A : N/A)
+0 + 0 with mate mapped to a different chr
+0 + 0 with mate mapped to a different chr (mapQ&gt;=5)
+
+---- COVERAGE METRICS ----
+#rname	startpos	endpos	numreads	covbases	coverage	meandepth	meanbaseq	meanmapq
+chr20	1	64444167	25	17864	0.0277201	0.00548206	23.7	60
+
+---- READ METRICS ----
+SN	raw total sequences:	25	# excluding supplementary and secondary reads
+SN	filtered sequences:	0
+SN	sequences:	25
+SN	is sorted:	1	# sorted by coordinate
+SN	1st fragments:	25
+SN	last fragments:	0
+SN	reads mapped:	25
+SN	reads mapped and paired:	0	# paired-end technology bit set + both mates mapped
+SN	reads unmapped:	0
+SN	reads properly paired:	0	# proper-pair bit set
+SN	reads paired:	0	# paired-end technology bit set
+SN	reads duplicated:	0	# PCR or optical duplicate bit set
+SN	reads MQ0:	0	# mapped and MQ=0
+SN	reads QC failed:	0
+SN	non-primary alignments:	0
+SN	supplementary alignments:	0
+SN	total length:	360064	# ignores clipping
+SN	total first fragment length:	360064	# ignores clipping
+SN	total last fragment length:	0	# ignores clipping
+SN	bases mapped:	360064	# ignores clipping
+SN	bases mapped (cigar):	359706	# more accurate
+SN	bases trimmed:	0
+SN	bases duplicated:	0
+SN	mismatches:	14126	# from NM fields
+SN	error rate:	3.927096e-02	# mismatches / bases mapped (cigar)
+SN	average length:	14403
+SN	average first fragment length:	14403
+SN	average last fragment length:	0
+SN	maximum length:	17989
+SN	maximum first fragment length:	17989
+SN	maximum last fragment length:	0
+SN	average quality:	23.5
+SN	insert size average:	0.0
+SN	insert size standard deviation:	0.0
+SN	inward oriented pairs:	0
+SN	outward oriented pairs:	0
+SN	pairs with other orientation:	0
+SN	pairs on different chromosomes:	0
+SN	percentage of properly paired reads (%):	0.0
+
+---- VARIANT SUMMARY ----
+SN	0	number of samples:	1
+SN	0	number of records:	20
+SN	0	number of no-ALTs:	0
+SN	0	number of SNPs:	17
+SN	0	number of MNPs:	0
+SN	0	number of indels:	3
+SN	0	number of others:	0
+SN	0	number of multiallelic sites:	0
+SN	0	number of multiallelic SNP sites:	0
+
+---- VARIANT PREVIEW (first 10) ----
+CHROM      POS        REF    ALT    QUAL     FILTER    
+chr20      101171     C      A      59.4147  PASS      
+chr20      102727     T      A      162.416  PASS      
+chr20      103726     A      C      162.416  PASS      
+chr20      104382     C      T      162.416  PASS      
+chr20      105696     A      T      162.416  PASS      
+chr20      106692     A      C      162.416  PASS      
+chr20      107426     T      G      162.416  PASS      
+chr20      108713     C      G      162.416  PASS      
+chr20      109432     G      T      162.416  PASS      
+chr20      110173     T      A      162.416  PASS      
+</pre>
+</div></td></tr>
+<tr class="sr" data-detail="s3">
+  <td class="sn">sample_5snv <span class="ei">▼</span></td>
+  <td>25</td>
+  <td class="q-neutral">25</td>
+  <td class="q-pass">100.00</td>
+  <td>14401</td>
+  <td class="q-pass">29.2</td>
+  <td class="q-fail">0.00550754</td>
+  <td>7</td>
+  <td>5</td>
+  <td>2</td>
+  <td>5</td>
+</tr>
+<tr id="s3" style="display:none;"><td colspan="11"><div class="db">
+  <div class="dm"><b>Sample:</b> sample_5snv &nbsp;|&nbsp;
+  <b>Generated:</b> 2026-03-15 21:20:35</div>
+  <pre class="dp">============================================
+PacBio HiFi Pipeline QC Report
+Sample    : sample_5snv
+Generated : 2026-03-15 21:20:35
+============================================
+
+---- ALIGNMENT METRICS ----
+25 + 0 in total (QC-passed reads + QC-failed reads)
+25 + 0 primary
+0 + 0 secondary
+0 + 0 supplementary
+0 + 0 duplicates
+0 + 0 primary duplicates
+25 + 0 mapped (100.00% : N/A)
+25 + 0 primary mapped (100.00% : N/A)
+0 + 0 paired in sequencing
+0 + 0 read1
+0 + 0 read2
+0 + 0 properly paired (N/A : N/A)
+0 + 0 with itself and mate mapped
+0 + 0 singletons (N/A : N/A)
+0 + 0 with mate mapped to a different chr
+0 + 0 with mate mapped to a different chr (mapQ&gt;=5)
+
+---- COVERAGE METRICS ----
+#rname	startpos	endpos	numreads	covbases	coverage	meandepth	meanbaseq	meanmapq
+chr20	1	64444167	25	17996	0.0279249	0.00550754	29.5	60
+
+---- READ METRICS ----
+SN	raw total sequences:	25	# excluding supplementary and secondary reads
+SN	filtered sequences:	0
+SN	sequences:	25
+SN	is sorted:	1	# sorted by coordinate
+SN	1st fragments:	25
+SN	last fragments:	0
+SN	reads mapped:	25
+SN	reads mapped and paired:	0	# paired-end technology bit set + both mates mapped
+SN	reads unmapped:	0
+SN	reads properly paired:	0	# proper-pair bit set
+SN	reads paired:	0	# paired-end technology bit set
+SN	reads duplicated:	0	# PCR or optical duplicate bit set
+SN	reads MQ0:	0	# mapped and MQ=0
+SN	reads QC failed:	0
+SN	non-primary alignments:	0
+SN	supplementary alignments:	0
+SN	total length:	360036	# ignores clipping
+SN	total first fragment length:	360036	# ignores clipping
+SN	total last fragment length:	0	# ignores clipping
+SN	bases mapped:	360036	# ignores clipping
+SN	bases mapped (cigar):	359899	# more accurate
+SN	bases trimmed:	0
+SN	bases duplicated:	0
+SN	mismatches:	10800	# from NM fields
+SN	error rate:	3.000842e-02	# mismatches / bases mapped (cigar)
+SN	average length:	14401
+SN	average first fragment length:	14401
+SN	average last fragment length:	0
+SN	maximum length:	18213
+SN	maximum first fragment length:	18213
+SN	maximum last fragment length:	0
+SN	average quality:	29.2
+SN	insert size average:	0.0
+SN	insert size standard deviation:	0.0
+SN	inward oriented pairs:	0
+SN	outward oriented pairs:	0
+SN	pairs with other orientation:	0
+SN	pairs on different chromosomes:	0
+SN	percentage of properly paired reads (%):	0.0
+
+---- VARIANT SUMMARY ----
+SN	0	number of samples:	1
+SN	0	number of records:	7
+SN	0	number of no-ALTs:	0
+SN	0	number of SNPs:	5
+SN	0	number of MNPs:	0
+SN	0	number of indels:	2
+SN	0	number of others:	0
+SN	0	number of multiallelic sites:	0
+SN	0	number of multiallelic SNP sites:	0
+
+---- VARIANT PREVIEW (first 10) ----
+CHROM      POS        REF    ALT    QUAL     FILTER    
+chr20      101715     C      A      119.415  PASS      
+chr20      102856     T      G      225.417  PASS      
+chr20      103529     T      C      225.417  PASS      
+chr20      108771     A      G      225.417  PASS      
+chr20      113301     CG     C      3.57324  LowQual   
+chr20      113344     T      G      225.417  PASS      
+chr20      117057     T      TA     6.50122  LowQual   
+</pre>
+</div></td></tr>
+</tbody>
+</table>
+</div>
+
+<!-- 4. Variant track (below table) -->
+<div class="sec"><div class="st">Variant positions — all samples</div><div style="overflow-x:auto;margin:0 0 8px 0;"><svg width="100%" viewBox="0 0 820 240" style="min-width:500px;display:block;"><text x="140" y="41" text-anchor="end" font-size="11" fill="#555" font-family="Arial">sample_10snv</text>
+<rect x="150" y="35" width="640" height="4" rx="2" fill="#ddd"/>
+<line x1="208" y1="25" x2="208" y2="49" stroke="#e65100" stroke-width="2.5" stroke-linecap="round" opacity="0.85"><title>chr20:101985 TA→T (LowQual)</title></line>
+<line x1="240" y1="25" x2="240" y2="49" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round" opacity="0.85"><title>chr20:102848 T→G (PASS)</title></line>
+<line x1="269" y1="25" x2="269" y2="49" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round" opacity="0.85"><title>chr20:103648 C→T (PASS)</title></line>
+<line x1="293" y1="25" x2="293" y2="49" stroke="#e65100" stroke-width="2.5" stroke-linecap="round" opacity="0.85"><title>chr20:104300 G→GA (LowQual)</title></line>
+<line x1="303" y1="25" x2="303" y2="49" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round" opacity="0.85"><title>chr20:104572 A→T (PASS)</title></line>
+<line x1="404" y1="25" x2="404" y2="49" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round" opacity="0.85"><title>chr20:107314 G→T (PASS)</title></line>
+<line x1="430" y1="25" x2="430" y2="49" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round" opacity="0.85"><title>chr20:108024 G→A (PASS)</title></line>
+<line x1="466" y1="25" x2="466" y2="49" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round" opacity="0.85"><title>chr20:109012 C→T (PASS)</title></line>
+<line x1="642" y1="25" x2="642" y2="49" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round" opacity="0.85"><title>chr20:113825 T→C (PASS)</title></line>
+<line x1="742" y1="25" x2="742" y2="49" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round" opacity="0.85"><title>chr20:116559 G→A (PASS)</title></line>
+<text x="140" y="85" text-anchor="end" font-size="11" fill="#555" font-family="Arial">sample_1snv</text>
+<rect x="150" y="79" width="640" height="4" rx="2" fill="#ddd"/>
+<line x1="675" y1="69" x2="675" y2="93" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round" opacity="0.85"><title>chr20:114726 A→G (PASS)</title></line>
+<text x="140" y="129" text-anchor="end" font-size="11" fill="#555" font-family="Arial">sample_20snv</text>
+<rect x="150" y="123" width="640" height="4" rx="2" fill="#ddd"/>
+<line x1="179" y1="113" x2="179" y2="137" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round" opacity="0.85"><title>chr20:101171 C→A (PASS)</title></line>
+<line x1="236" y1="113" x2="236" y2="137" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round" opacity="0.85"><title>chr20:102727 T→A (PASS)</title></line>
+<line x1="272" y1="113" x2="272" y2="137" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round" opacity="0.85"><title>chr20:103726 A→C (PASS)</title></line>
+<line x1="296" y1="113" x2="296" y2="137" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round" opacity="0.85"><title>chr20:104382 C→T (PASS)</title></line>
+<line x1="344" y1="113" x2="344" y2="137" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round" opacity="0.85"><title>chr20:105696 A→T (PASS)</title></line>
+<line x1="381" y1="113" x2="381" y2="137" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round" opacity="0.85"><title>chr20:106692 A→C (PASS)</title></line>
+<line x1="408" y1="113" x2="408" y2="137" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round" opacity="0.85"><title>chr20:107426 T→G (PASS)</title></line>
+<line x1="455" y1="113" x2="455" y2="137" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round" opacity="0.85"><title>chr20:108713 C→G (PASS)</title></line>
+<line x1="481" y1="113" x2="481" y2="137" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round" opacity="0.85"><title>chr20:109432 G→T (PASS)</title></line>
+<line x1="508" y1="113" x2="508" y2="137" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round" opacity="0.85"><title>chr20:110173 T→A (PASS)</title></line>
+<text x="140" y="173" text-anchor="end" font-size="11" fill="#555" font-family="Arial">sample_5snv</text>
+<rect x="150" y="167" width="640" height="4" rx="2" fill="#ddd"/>
+<line x1="199" y1="157" x2="199" y2="181" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round" opacity="0.85"><title>chr20:101715 C→A (PASS)</title></line>
+<line x1="240" y1="157" x2="240" y2="181" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round" opacity="0.85"><title>chr20:102856 T→G (PASS)</title></line>
+<line x1="265" y1="157" x2="265" y2="181" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round" opacity="0.85"><title>chr20:103529 T→C (PASS)</title></line>
+<line x1="457" y1="157" x2="457" y2="181" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round" opacity="0.85"><title>chr20:108771 A→G (PASS)</title></line>
+<line x1="623" y1="157" x2="623" y2="181" stroke="#e65100" stroke-width="2.5" stroke-linecap="round" opacity="0.85"><title>chr20:113301 CG→C (LowQual)</title></line>
+<line x1="624" y1="157" x2="624" y2="181" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round" opacity="0.85"><title>chr20:113344 T→G (PASS)</title></line>
+<line x1="760" y1="157" x2="760" y2="181" stroke="#e65100" stroke-width="2.5" stroke-linecap="round" opacity="0.85"><title>chr20:117057 T→TA (LowQual)</title></line>
+<line x1="150" y1="204" x2="150" y2="210" stroke="#bbb" stroke-width="0.5"/>
+<text x="150" y="221" text-anchor="middle" font-size="9" fill="#aaa" font-family="Arial">100kb</text>
+<line x1="256" y1="204" x2="256" y2="210" stroke="#bbb" stroke-width="0.5"/>
+<text x="256" y="221" text-anchor="middle" font-size="9" fill="#aaa" font-family="Arial">103kb</text>
+<line x1="363" y1="204" x2="363" y2="210" stroke="#bbb" stroke-width="0.5"/>
+<text x="363" y="221" text-anchor="middle" font-size="9" fill="#aaa" font-family="Arial">106kb</text>
+<line x1="470" y1="204" x2="470" y2="210" stroke="#bbb" stroke-width="0.5"/>
+<text x="470" y="221" text-anchor="middle" font-size="9" fill="#aaa" font-family="Arial">109kb</text>
+<line x1="576" y1="204" x2="576" y2="210" stroke="#bbb" stroke-width="0.5"/>
+<text x="576" y="221" text-anchor="middle" font-size="9" fill="#aaa" font-family="Arial">112kb</text>
+<line x1="683" y1="204" x2="683" y2="210" stroke="#bbb" stroke-width="0.5"/>
+<text x="683" y="221" text-anchor="middle" font-size="9" fill="#aaa" font-family="Arial">114kb</text>
+<line x1="790" y1="204" x2="790" y2="210" stroke="#bbb" stroke-width="0.5"/>
+<text x="790" y="221" text-anchor="middle" font-size="9" fill="#aaa" font-family="Arial">117kb</text>
+<circle cx="150" cy="230" r="4" fill="#2e7d32"/><text x="158" y="234" font-size="10" fill="#555" font-family="Arial">PASS</text><circle cx="205" cy="230" r="4" fill="#e65100"/><text x="213" y="234" font-size="10" fill="#555" font-family="Arial">LowQual</text><text x="280" y="234" font-size="10" fill="#aaa" font-family="Arial">Hover for details · chr20:100,377–117,851</text></svg></div></div>
+
+<div class="ft">
+  Generated by PacBio HiFi Variant Pipeline &mdash; 2026-03-15 17:53:46 &mdash; 4 samples
+</div>
+
+<script>
+// Set thead sticky offset to sit exactly below topbar + legbar.
+// window.onload ensures all elements are fully rendered before measuring.
+window.onload = function() {
+  var tb  = document.getElementById('topbar');
+  var lb  = document.getElementById('legbar');
+  var offset = (tb ? tb.offsetHeight : 53) + (lb ? lb.offsetHeight : 32);
+  document.querySelector('#t thead').style.top = offset + 'px';
+};
+
+// Row toggle — only fires on the .sr row itself, not the expanded detail
+document.querySelectorAll('.sr').forEach(function(row) {
+  row.addEventListener('click', function(e) {
+    if (e.target.tagName === 'PRE' || e.target.tagName === 'CODE') return;
+    var detail = document.getElementById(row.getAttribute('data-detail'));
+    if (detail) {
+      detail.style.display = detail.style.display === 'none' ? 'table-row' : 'none';
+    }
+  });
+});
+</script>
+</body>
+</html>

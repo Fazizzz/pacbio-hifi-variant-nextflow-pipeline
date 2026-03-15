@@ -1,0 +1,10 @@
+##fileformat=VCFv4.2
+##contig=<ID=chr20,length=64444167>
+##FILTER=<ID=PASS,Description="All filters passed">
+##INFO=<ID=SYNTHETIC,Number=0,Type=Flag,Description="Synthetically injected variant">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+chr20	101715	.	C	A	.	PASS	SYNTHETIC
+chr20	102856	.	T	G	.	PASS	SYNTHETIC
+chr20	103529	.	T	C	.	PASS	SYNTHETIC
+chr20	108771	.	A	G	.	PASS	SYNTHETIC
+chr20	113344	.	T	G	.	PASS	SYNTHETIC

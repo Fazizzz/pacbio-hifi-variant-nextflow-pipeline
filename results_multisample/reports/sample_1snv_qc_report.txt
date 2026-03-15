@@ -1,0 +1,83 @@
+============================================
+PacBio HiFi Pipeline QC Report
+Sample    : sample_1snv
+Generated : 2026-03-15 21:20:37
+============================================
+
+---- ALIGNMENT METRICS ----
+25 + 0 in total (QC-passed reads + QC-failed reads)
+25 + 0 primary
+0 + 0 secondary
+0 + 0 supplementary
+0 + 0 duplicates
+0 + 0 primary duplicates
+25 + 0 mapped (100.00% : N/A)
+25 + 0 primary mapped (100.00% : N/A)
+0 + 0 paired in sequencing
+0 + 0 read1
+0 + 0 read2
+0 + 0 properly paired (N/A : N/A)
+0 + 0 with itself and mate mapped
+0 + 0 singletons (N/A : N/A)
+0 + 0 with mate mapped to a different chr
+0 + 0 with mate mapped to a different chr (mapQ>=5)
+
+---- COVERAGE METRICS ----
+#rname	startpos	endpos	numreads	covbases	coverage	meandepth	meanbaseq	meanmapq
+chr20	1	64444167	25	17863	0.0277186	0.0054633	33.6	60
+
+---- READ METRICS ----
+SN	raw total sequences:	25	# excluding supplementary and secondary reads
+SN	filtered sequences:	0
+SN	sequences:	25
+SN	is sorted:	1	# sorted by coordinate
+SN	1st fragments:	25
+SN	last fragments:	0
+SN	reads mapped:	25
+SN	reads mapped and paired:	0	# paired-end technology bit set + both mates mapped
+SN	reads unmapped:	0
+SN	reads properly paired:	0	# proper-pair bit set
+SN	reads paired:	0	# paired-end technology bit set
+SN	reads duplicated:	0	# PCR or optical duplicate bit set
+SN	reads MQ0:	0	# mapped and MQ=0
+SN	reads QC failed:	0
+SN	non-primary alignments:	0
+SN	supplementary alignments:	0
+SN	total length:	360024	# ignores clipping
+SN	total first fragment length:	360024	# ignores clipping
+SN	total last fragment length:	0	# ignores clipping
+SN	bases mapped:	360024	# ignores clipping
+SN	bases mapped (cigar):	359805	# more accurate
+SN	bases trimmed:	0
+SN	bases duplicated:	0
+SN	mismatches:	17873	# from NM fields
+SN	error rate:	4.967413e-02	# mismatches / bases mapped (cigar)
+SN	average length:	14401
+SN	average first fragment length:	14401
+SN	average last fragment length:	0
+SN	maximum length:	17230
+SN	maximum first fragment length:	17230
+SN	maximum last fragment length:	0
+SN	average quality:	33.1
+SN	insert size average:	0.0
+SN	insert size standard deviation:	0.0
+SN	inward oriented pairs:	0
+SN	outward oriented pairs:	0
+SN	pairs with other orientation:	0
+SN	pairs on different chromosomes:	0
+SN	percentage of properly paired reads (%):	0.0
+
+---- VARIANT SUMMARY ----
+SN	0	number of samples:	1
+SN	0	number of records:	1
+SN	0	number of no-ALTs:	0
+SN	0	number of SNPs:	1
+SN	0	number of MNPs:	0
+SN	0	number of indels:	0
+SN	0	number of others:	0
+SN	0	number of multiallelic sites:	0
+SN	0	number of multiallelic SNP sites:	0
+
+---- VARIANT PREVIEW (first 10) ----
+CHROM      POS        REF    ALT    QUAL     FILTER    
+chr20      114726     A      G      150.422  PASS      

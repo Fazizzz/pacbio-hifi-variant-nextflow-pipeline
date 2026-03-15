@@ -1,89 +1,65 @@
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    pacbio-hifi-variant-nextflow-pipeline
+    pacbio-hifi-variant-nextflow-pipeline — Multi-Sample Production Pipeline
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     Entry point for the PacBio HiFi variant calling pipeline.
 
-    This file is deliberately minimal. Its only responsibilities are:
+    This file supports both single-sample and multi-sample (samplesheet) input.
+
+    Responsibilities:
         1. Parameter validation and fail-fast checks
-        2. Channel creation from user inputs
+        2. Channel creation from samplesheet or single-sample input
         3. Calling the main workflow
 
     All pipeline logic lives in workflows/pacbio_variant_workflow.nf.
 
-    Usage:
-        # Default run — minimap2 + bcftools, local conda environment
+    Usage — single sample:
         nextflow run main.nf \
             --reads     test_data/synthetic_reads.fastq \
             --reference reference/chr20.fa \
             --sample    synthetic_reads \
             --outdir    results
 
-        # Docker run — minimap2 + bcftools in container
+    Usage — multi-sample samplesheet:
         nextflow run main.nf \
-            -profile docker \
-            --reads     test_data/synthetic_reads.fastq \
-            --reference reference/chr20.fa \
-            --sample    synthetic_reads \
-            --outdir    results
+            --samplesheet samplesheet.csv \
+            --reference   reference/chr20.fa \
+            --outdir      results
 
-        # Docker run — pbmm2 aligner
-        nextflow run main.nf \
-            -profile docker \
-            --aligner   pbmm2 \
-            --reads     test_data/synthetic_reads.fastq \
-            --reference reference/chr20.fa \
-            --sample    synthetic_reads
+    Samplesheet format (CSV, no header required):
+        sample_name,/path/to/reads.fastq
+        sample_A,data/sample_A.fastq
+        sample_B,data/sample_B.fastq
 
-        # Docker run — Clair3 variant caller
-        nextflow run main.nf \
-            -profile    docker \
-            --snv_caller clair3 \
-            --clair3_model /path/to/model \
-            --reads     test_data/synthetic_reads.fastq \
-            --reference reference/chr20.fa \
-            --sample    synthetic_reads
+    Usage — Docker:
+        nextflow run main.nf -profile docker \
+            --samplesheet samplesheet.csv \
+            --reference   reference/chr20.fa \
+            --outdir      results
 
-        # Test profile — runs on provided synthetic chr20 test dataset
+    Test profile:
         nextflow run main.nf -profile test
         nextflow run main.nf -profile docker,test
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-// -----------------------------------------------------------------------
-// Nextflow DSL version
-// DSL2 is the modern Nextflow syntax used throughout this pipeline.
-// It enables module imports, named workflows, and channel operations
-// like branch(), join(), mix(), combine(), and broadcast().
-// -----------------------------------------------------------------------
 nextflow.enable.dsl = 2
 
-// -----------------------------------------------------------------------
-// Workflow import
-// Imports the named workflow from the workflow file.
-// This is the only import in main.nf — all module imports are handled
-// inside pacbio_variant_workflow.nf.
-// -----------------------------------------------------------------------
 include { PACBIO_VARIANT_WORKFLOW } from './workflows/pacbio_variant_workflow'
 
 
 // -----------------------------------------------------------------------
 // Parameter defaults
-// All pipeline parameters declared here with their default values.
-// Users override these on the command line with --param_name value.
-// Parameters can also be set in params.yaml passed with -params-file.
-//
-// null means the parameter is required — the validation block below
-// catches any missing required parameters before the pipeline runs.
 // -----------------------------------------------------------------------
-params.reads                 = null
-params.reference             = null
-params.sample                = null
-params.outdir                = "results"
-params.aligner               = "minimap2"
-params.snv_caller            = "bcftools"
-params.threads               = 4
-params.clair3_model          = null
+params.reads             = null
+params.samplesheet       = null
+params.reference         = null
+params.sample            = null
+params.outdir            = "results"
+params.aligner           = "minimap2"
+params.snv_caller        = "bcftools"
+params.threads           = 4
+params.clair3_model      = null
 params.pipeline_container    = "pacbio-hifi-pipeline:1.0"
 params.pbmm2_container       = "pacbio-hifi-pipeline:pbmm2"
 params.clair3_container      = "pacbio-hifi-clair3:1.0"
@@ -91,18 +67,15 @@ params.deepvariant_container = "google/deepvariant:1.6.1"
 
 
 // -----------------------------------------------------------------------
-// Pipeline info block
-// Prints a summary header to the log at pipeline startup.
-// log.info writes to the Nextflow log — visible in terminal and
-// in the .nextflow.log file for debugging.
+// Pipeline info
 // -----------------------------------------------------------------------
 log.info """
 ============================================
 PacBio HiFi Variant Pipeline
 ============================================
-reads        : ${params.reads}
+samplesheet  : ${params.samplesheet ?: 'not provided'}
+reads        : ${params.reads ?: 'not provided'}
 reference    : ${params.reference}
-sample       : ${params.sample}
 outdir       : ${params.outdir}
 aligner      : ${params.aligner}
 snv_caller   : ${params.snv_caller}
@@ -111,41 +84,45 @@ threads      : ${params.threads}
 """.stripIndent()
 
 
-// -----------------------------------------------------------------------
-// Main workflow
-// Three sections:
-//   1. Parameter validation — fail fast with clear messages
-//   2. Channel creation     — convert file paths to Nextflow channels
-//   3. Workflow call        — pass channels to PACBIO_VARIANT_WORKFLOW
-// -----------------------------------------------------------------------
 workflow {
 
     // -----------------------------------------------------------------------
     // SECTION 1 — Parameter validation
-    //
-    // All validation happens here before any processes run.
-    // 'error' immediately stops the pipeline with a clear message.
-    // This is preferable to letting tools fail with cryptic errors
-    // after minutes of setup.
     // -----------------------------------------------------------------------
 
-    // Required parameters
-    if (!params.reads) {
-        error "Missing required parameter: --reads"
-    }
+    // Reference is always required
     if (!params.reference) {
         error "Missing required parameter: --reference"
     }
-    if (!params.sample) {
-        error "Missing required parameter: --sample"
-    }
-
-    // Input file existence checks
-    if (!file(params.reads).exists()) {
-        error "Reads file not found: ${params.reads}"
-    }
     if (!file(params.reference).exists()) {
         error "Reference file not found: ${params.reference}"
+    }
+
+    // Either --samplesheet or --reads must be provided, not both
+    if (!params.samplesheet && !params.reads) {
+        error """
+            No input provided. Use one of:
+              --samplesheet samplesheet.csv   (multi-sample)
+              --reads reads.fastq             (single sample, also requires --sample)
+        """.stripIndent()
+    }
+    if (params.samplesheet && params.reads) {
+        error "Provide either --samplesheet or --reads, not both."
+    }
+
+    // Single sample mode requires --sample
+    if (params.reads && !params.sample) {
+        error "Single sample mode requires --sample. Example: --sample my_sample"
+    }
+
+    // Single sample reads existence check
+    if (params.reads && !file(params.reads).exists()) {
+        error "Reads file not found: ${params.reads}"
+    }
+
+    // Samplesheet existence check
+    if (params.samplesheet && !file(params.samplesheet).exists()) {
+        error "Samplesheet not found: ${params.samplesheet}"
     }
 
     // Aligner validation
@@ -162,12 +139,10 @@ workflow {
 
     // -----------------------------------------------------------------------
     // Docker-only tool checks
-    //
     // workflow.containerEngine is used instead of workflow.profile.contains()
     // because workflow.profile is not guaranteed to exist in all Nextflow
     // versions. containerEngine is set to 'docker', 'singularity', etc.
-    // when a container engine is active, and null otherwise — making it
-    // a reliable cross-version check.
+    // when a container engine is active, and null otherwise.
     // -----------------------------------------------------------------------
     if (params.aligner == "pbmm2" && !workflow.containerEngine) {
         error """
@@ -189,8 +164,7 @@ workflow {
         """.stripIndent()
     }
 
-    // Clair3 model path validation
-    // Checked here so the error is caught before any Docker container starts
+    // Clair3 model validation
     if (params.snv_caller == "clair3" && !params.clair3_model) {
         error """
             clair3 requires a model directory: --clair3_model /path/to/model
@@ -214,35 +188,66 @@ workflow {
     // -----------------------------------------------------------------------
     // SECTION 2 — Channel creation
     //
-    // Channels are the pipes that carry data between processes.
-    // Here we convert user-supplied file paths into Nextflow channels.
+    // Supports two input modes:
     //
-    // Channel.of() creates a channel from one or more values.
+    // Mode A — Single sample (--reads + --sample)
+    //   Creates a single-item channel from command line parameters.
     //
-    // tuple(params.sample, file(params.reads))
-    //   Creates a tuple channel item pairing the sample name with the
-    //   reads file. The sample name travels with its data throughout
-    //   the entire pipeline so outputs are always named correctly.
-    //   This is the standard nf-core pattern for sample-aware pipelines.
+    // Mode B — Multi-sample samplesheet (--samplesheet)
+    //   Reads a CSV file with format: sample_name,/path/to/reads.fastq
+    //   Creates a channel with one item per sample.
+    //   All samples flow through the pipeline in parallel.
     //
-    // Channel.fromPath()
-    //   Creates a channel from a file path. Used for the reference since
-    //   it is shared across all samples and doesn't carry a sample name.
+    // In both modes the channel structure is identical:
+    //   [ val(sample), path(reads) ]
+    // This ensures the workflow file requires no changes between modes.
     // -----------------------------------------------------------------------
 
-    reads_ch = Channel.of(
-        tuple(params.sample, file(params.reads))
-    )
+    if (params.samplesheet) {
+
+        // -----------------------------------------------------------------------
+        // Multi-sample mode
+        // splitCsv() parses each line of the CSV into a list.
+        // map() converts each line into the standard tuple format.
+        // Validates that each reads file exists before the pipeline starts.
+        // -----------------------------------------------------------------------
+        reads_ch = Channel
+            .fromPath(params.samplesheet)
+            .splitCsv()
+            .map { row ->
+                def sample = row[0].trim()
+                def reads  = file(row[1].trim())
+
+                if (!reads.exists()) {
+                    error "Reads file not found for sample '${sample}': ${reads}"
+                }
+                if (sample.isEmpty()) {
+                    error "Empty sample name found in samplesheet. Check your CSV."
+                }
+
+                tuple(sample, reads)
+            }
+
+        log.info "Multi-sample mode: reading from samplesheet ${params.samplesheet}"
+
+    } else {
+
+        // -----------------------------------------------------------------------
+        // Single-sample mode
+        // Channel.of() creates a single-item channel from command line parameters.
+        // -----------------------------------------------------------------------
+        reads_ch = Channel.of(
+            tuple(params.sample, file(params.reads))
+        )
+
+        log.info "Single-sample mode: sample=${params.sample}"
+    }
 
     ref_ch = Channel.fromPath(params.reference)
 
 
     // -----------------------------------------------------------------------
     // SECTION 3 — Workflow call
-    //
-    // Pass the channels to the main workflow.
-    // Everything else — module imports, process execution, channel wiring —
-    // is handled inside pacbio_variant_workflow.nf.
     // -----------------------------------------------------------------------
 
     PACBIO_VARIANT_WORKFLOW(reads_ch, ref_ch)
@@ -251,10 +256,6 @@ workflow {
 
 // -----------------------------------------------------------------------
 // Completion handler
-// Runs after the pipeline finishes — prints a summary to the log.
-// workflow.success is a Nextflow built-in boolean.
-// workflow.duration is automatically tracked by Nextflow.
-// Runs regardless of success or failure so you always get a summary.
 // -----------------------------------------------------------------------
 workflow.onComplete {
     if (workflow.success) {
