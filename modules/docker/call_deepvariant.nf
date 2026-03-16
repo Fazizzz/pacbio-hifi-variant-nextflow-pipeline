@@ -152,4 +152,16 @@ process CALL_DEEPVARIANT {
 
     bcftools index \$FINAL_VCF
     """
+
+    // -----------------------------------------------------------------------
+    // stub
+    // Used by -stub-run mode for lightweight CI validation.
+    // Creates empty placeholder VCF and index so Nextflow can verify
+    // channel wiring without executing DeepVariant or Docker.
+    // -----------------------------------------------------------------------
+    stub:
+    """
+    touch ${sample}_deepvariant_norm.vcf.gz
+    touch ${sample}_deepvariant_norm.vcf.gz.csi
+    """
 }

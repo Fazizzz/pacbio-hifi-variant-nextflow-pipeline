@@ -163,4 +163,16 @@ process CALL_BCFTOOLS {
 
     bcftools index \$FINAL_VCF
     """
+
+    // -----------------------------------------------------------------------
+    // stub
+    // Used by -stub-run mode for lightweight CI validation.
+    // Creates empty placeholder VCF and index files so Nextflow can verify
+    // channel wiring without executing bcftools.
+    // -----------------------------------------------------------------------
+    stub:
+    """
+    touch ${sample}_norm.vcf.gz
+    touch ${sample}_norm.vcf.gz.csi
+    """
 }

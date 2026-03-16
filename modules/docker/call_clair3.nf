@@ -158,4 +158,16 @@ process CALL_CLAIR3 {
 
     bcftools index ${sample}_clair3_norm.vcf.gz
     """
+
+    // -----------------------------------------------------------------------
+    // stub
+    // Used by -stub-run mode for lightweight CI validation.
+    // Creates empty placeholder VCF and index so Nextflow can verify
+    // channel wiring without executing Clair3 or Docker.
+    // -----------------------------------------------------------------------
+    stub:
+    """
+    touch ${sample}_clair3_norm.vcf.gz
+    touch ${sample}_clair3_norm.vcf.gz.csi
+    """
 }

@@ -126,4 +126,16 @@ process ALIGN_MINIMAP2 {
 
     samtools index ${sample}.bam
     """
+
+    // -----------------------------------------------------------------------
+    // stub
+    // Used by -stub-run mode for lightweight CI validation.
+    // Creates empty placeholder BAM and index files so Nextflow can verify
+    // channel wiring without executing minimap2 or samtools.
+    // -----------------------------------------------------------------------
+    stub:
+    """
+    touch ${sample}.bam
+    touch ${sample}.bam.bai
+    """
 }

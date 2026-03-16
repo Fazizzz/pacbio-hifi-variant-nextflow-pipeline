@@ -101,4 +101,15 @@ process INDEX_REFERENCE {
     """
     samtools faidx ${reference}
     """
+
+    // -----------------------------------------------------------------------
+    // stub
+    // Used by -stub-run mode for lightweight CI validation.
+    // Creates empty placeholder files matching the declared output types
+    // so Nextflow can verify channel wiring without executing real tools.
+    // -----------------------------------------------------------------------
+    stub:
+    """
+    touch ${reference}.fai
+    """
 }

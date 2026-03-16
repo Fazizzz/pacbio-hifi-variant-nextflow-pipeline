@@ -178,4 +178,16 @@ process QC_SUMMARY {
         --vcf      ${vcf} \\
         --output   \$HTML_REPORT
     """
+
+    // -----------------------------------------------------------------------
+    // stub
+    // Used by -stub-run mode for lightweight CI validation.
+    // Creates empty placeholder report files so Nextflow can verify
+    // channel wiring without executing samtools, bcftools, or Python.
+    // -----------------------------------------------------------------------
+    stub:
+    """
+    touch ${sample}_qc_report.txt
+    touch ${sample}_qc_report.html
+    """
 }
