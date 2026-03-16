@@ -185,7 +185,7 @@ nextflow run main.nf -profile docker,test
 # Run multi-sample with samplesheet
 nextflow run main.nf -profile docker \
     --samplesheet test_data/samplesheet.csv \
-    --reference   reference/chr20.fa \
+    --reference   reference/ref.fa \
     --outdir      results
 ```
 
@@ -260,7 +260,7 @@ An example samplesheet is provided at `test_data/samplesheet.csv`.
 ```bash
 nextflow run main.nf -profile docker \
     --samplesheet test_data/samplesheet.csv \
-    --reference   reference/chr20.fa \
+    --reference   reference/ref.fa \
     --outdir      results
 ```
 
